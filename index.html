@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قاب‌گیر — ضبط ناحیه‌ای صفحه با صدا</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#10141b;
+    --bg-deep:#0a0d12;
+    --panel:#171c26;
+    --panel-raised:#1c2330;
+    --hairline:#262e3d;
+    --hairline-soft:#1f2630;
+    --text:#eef1f6;
+    --text-dim:#8d96a8;
+    --text-faint:#576074;
+    --tally:#ff3b30;
+    --amber:#ffb020;
+    --good:#36c587;
+    --info:#5b8cff;
+    --font-fa:'Vazirmatn', Tahoma, 'Segoe UI', sans-serif;
+    --font-mono:'JetBrains Mono', 'Courier New', monospace;
+    --radius:7px;
+    --radius-sm:4px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 480px at 50% -10%, #1a2030 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-fa);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 16px 64px;
+  }
+
+  .app{width:100%;max-width:880px;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:20px;}
+  .brand{display:flex;align-items:center;gap:9px;}
+  .brand__mark{width:10px;height:10px;border-radius:2px;background:var(--tally);box-shadow:0 0 10px rgba(255,59,48,.55);flex-shrink:0;}
+  .brand__name{font-weight:800;font-size:19px;letter-spacing:.2px;}
+  .brand__tag{font-family:var(--font-mono);font-size:10px;color:var(--text-faint);letter-spacing:.06em;border:1px solid var(--hairline);border-radius:3px;padding:3px 7px;direction:ltr;}
+
+  .stepper{display:flex;align-items:center;gap:0;list-style:none;margin:0;padding:0;font-family:var(--font-mono);}
+  .stepper__item{display:flex;align-items:center;gap:7px;padding:0 12px;color:var(--text-faint);font-size:11px;white-space:nowrap;}
+  .stepper__item:not(:first-child){border-inline-start:1px solid var(--hairline);}
+  .stepper__num{font-weight:700;}
+  .stepper__item.is-active{color:var(--text);}
+  .stepper__item.is-active .stepper__num{color:var(--tally);}
+  .stepper__item.is-done{color:var(--text-dim);}
+
+  .sub{color:var(--text-dim);font-size:13px;margin:4px auto 22px;text-align:center;max-width:560px;line-height:1.9;}
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--hairline);
+    border-radius:var(--radius);
+    padding:22px;
+    width:100%;
+  }
+
+  .stage{display:none;}
+  .stage.active{display:block;}
+
+  .field-label{font-size:12.5px;color:var(--text-dim);margin:0 0 10px;}
+
+  .icon{width:16px;height:16px;display:inline-block;vertical-align:-3px;}
+
+  .source-toggle{display:flex;border:1px solid var(--hairline);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px;}
+  .source-toggle input{position:absolute;opacity:0;pointer-events:none;}
+  .source-toggle label{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:13px 10px;font-size:13.5px;font-weight:600;color:var(--text-dim);
+    cursor:pointer;border-inline-start:1px solid var(--hairline);transition:background .15s,color .15s;
+  }
+  .source-toggle label:first-of-type{border-inline-start:none;}
+  .source-toggle label .icon{color:var(--text-faint);}
+  .source-toggle input:checked + label{background:var(--panel-raised);color:var(--text);}
+  .source-toggle input:checked + label .icon{color:var(--info);}
+  .source-toggle input:focus-visible + label{outline:2px solid var(--info);outline-offset:-2px;}
+
+  .option-row{display:flex;align-items:center;gap:9px;color:var(--text-dim);font-size:13px;margin-bottom:16px;cursor:pointer;width:fit-content;}
+  .option-row input{width:15px;height:15px;accent-color:var(--info);}
+  .option-row .icon{color:var(--text-faint);}
+
+  .hint-box{
+    background:var(--bg-deep);
+    border:1px solid var(--hairline-soft);
+    border-radius:var(--radius-sm);
+    padding:13px 14px;
+    font-size:12.5px;
+    color:var(--text-dim);
+    line-height:2;
+    margin-bottom:20px;
+  }
+  .hint-box b{color:var(--text);font-weight:700;}
+  .hint-box .mac-note{display:block;margin-top:8px;color:var(--text-faint);font-size:11.5px;}
+
+  .hint{text-align:center;color:var(--text-dim);font-size:12.5px;margin:0 0 16px;line-height:1.8;}
+
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;}
+
+  .btn{
+    font-family:var(--font-fa);
+    font-size:13.5px;
+    font-weight:700;
+    border:1px solid transparent;
+    border-radius:var(--radius-sm);
+    padding:12px 20px;
+    cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;
+    transition:filter .15s, transform .05s, background .15s;
+  }
+  .btn svg{width:15px;height:15px;flex-shrink:0;}
+  .btn:active{transform:scale(.97);}
+  .btn:disabled{opacity:.35;cursor:not-allowed;}
+  .btn--primary{background:var(--info);color:#06101f;}
+  .btn--primary:hover:not(:disabled){filter:brightness(1.08);}
+  .btn--ghost{background:transparent;color:var(--text);border-color:var(--hairline);}
+  .btn--ghost:hover{background:var(--panel-raised);}
+  .btn--danger{background:transparent;color:var(--tally);border-color:rgba(255,59,48,.4);}
+  .btn--danger:hover{background:rgba(255,59,48,.08);}
+  .btn--ok{background:var(--good);color:#04200f;}
+  .btn--ok:hover{filter:brightness(1.08);}
+
+  /* ---------- viewfinder ---------- */
+  .stage-frame{display:flex;gap:16px;align-items:stretch;}
+  @media (max-width:640px){
+    .stage-frame{flex-direction:column;}
+    .stage-frame .meter-shell{width:100%;flex-direction:row;}
+    .stage-frame .meter{flex-direction:row;min-height:unset;height:34px;}
+  }
+
+  .viewfinder-shell{
+    flex:1;min-width:0;
+    background:var(--bg-deep);
+    border:1px solid var(--hairline);
+    border-radius:6px;
+    padding:14px;
+    position:relative;
+  }
+  .preview-wrap{
+    position:relative;width:100%;background:#000;border-radius:3px;overflow:hidden;line-height:0;user-select:none;
+  }
+  video#previewVideo{width:100%;height:auto;display:block;}
+  .corner{position:absolute;width:16px;height:16px;border-color:var(--info);border-style:solid;border-width:0;pointer-events:none;opacity:.8;}
+  .corner.tl{top:6px;inset-inline-start:6px;border-top-width:2px;border-inline-start-width:2px;}
+  .corner.tr{top:6px;inset-inline-end:6px;border-top-width:2px;border-inline-end-width:2px;}
+  .corner.bl{bottom:6px;inset-inline-start:6px;border-bottom-width:2px;border-inline-start-width:2px;}
+  .corner.br{bottom:6px;inset-inline-end:6px;border-bottom-width:2px;border-inline-end-width:2px;}
+
+  #selectionBox{
+    position:absolute;border:2px solid var(--info);background:rgba(91,140,255,.12);
+    box-shadow:0 0 0 9999px rgba(0,0,0,.5);cursor:move;display:none;
+  }
+  .handle{position:absolute;width:13px;height:13px;background:var(--info);border:2px solid var(--bg-deep);border-radius:2px;}
+  .handle.tl{top:-7px;left:-7px;cursor:nwse-resize;}
+  .handle.tr{top:-7px;right:-7px;cursor:nesw-resize;}
+  .handle.bl{bottom:-7px;left:-7px;cursor:nesw-resize;}
+  .handle.br{bottom:-7px;right:-7px;cursor:nwse-resize;}
+
+  /* ---------- signal meter (signature element) ---------- */
+  .meter-shell{
+    width:72px;flex-shrink:0;background:var(--bg-deep);border:1px solid var(--hairline);border-radius:6px;
+    padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  }
+  .meter-label{font-family:var(--font-mono);font-size:9px;color:var(--text-faint);letter-spacing:.08em;flex-shrink:0;direction:ltr;}
+  .meter{display:flex;flex-direction:column-reverse;gap:3px;width:100%;flex:1;min-height:160px;}
+  .meter-seg{flex:1;border-radius:2px;background:var(--hairline-soft);transition:background-color .07s linear,box-shadow .07s linear;}
+  .meter-seg.lit-good{background:var(--good);box-shadow:0 0 6px rgba(54,197,135,.5);}
+  .meter-seg.lit-amber{background:var(--amber);box-shadow:0 0 6px rgba(255,176,32,.5);}
+  .meter-seg.lit-red{background:var(--tally);box-shadow:0 0 6px rgba(255,59,48,.55);}
+  .meter-db{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);flex-shrink:0;direction:ltr;}
+
+  .banner{
+    display:flex;align-items:flex-start;gap:8px;
+    background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.35);
+    border-radius:var(--radius-sm);padding:11px 13px;font-size:12.5px;color:#f4d9a0;
+    line-height:1.9;margin-top:14px;
+  }
+  .banner.hidden{display:none;}
+
+  /* ---------- recording stage ---------- */
+  .tally-row{display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+  .tally{
+    display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;
+    border:1px solid rgba(255,59,48,.4);border-radius:4px;padding:6px 13px;color:var(--tally);
+  }
+  .tally__dot{width:8px;height:8px;border-radius:50%;background:var(--tally);box-shadow:0 0 8px rgba(255,59,48,.7);animation:tally-breathe 1.6s ease-in-out infinite;flex-shrink:0;}
+  .tally.is-paused{border-color:rgba(255,176,32,.4);color:var(--amber);}
+  .tally.is-paused .tally__dot{background:var(--amber);box-shadow:0 0 8px rgba(255,176,32,.6);animation:none;}
+  @keyframes tally-breathe{0%,100%{opacity:1;}50%{opacity:.3;}}
+  @media (prefers-reduced-motion:reduce){.tally__dot{animation:none;}}
+
+  #timer{font-family:var(--font-mono);font-size:27px;font-weight:600;letter-spacing:.03em;display:block;text-align:center;margin-bottom:20px;direction:ltr;}
+
+  /* ---------- result ---------- */
+  .result-box{text-align:center;}
+  .result-box video{width:100%;border-radius:8px;margin-bottom:14px;background:#000;}
+  .data-row{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin:0 0 20px;}
+  .data-item b{display:block;color:var(--text);font-size:14px;margin-top:3px;font-weight:600;direction:ltr;}
+
+  .footnote{margin-top:28px;color:var(--text-faint);font-size:11px;max-width:600px;text-align:center;line-height:2;}
+  .footnote b{color:var(--text-dim);}
+  .footnote code{direction:ltr;display:inline-block;font-family:var(--font-mono);background:var(--panel-raised);padding:1px 6px;border-radius:3px;}
+
+  canvas#hiddenCanvas{display:none;}
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-tab" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="14" height="12" rx="1.5"/><line x1="3" y1="7.5" x2="17" y2="7.5"/>
+  </symbol>
+  <symbol id="i-screen" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.5" y="3.5" width="15" height="10" rx="1.5"/><line x1="7" y1="17" x2="13" y2="17"/><line x1="10" y1="13.5" x2="10" y2="17"/>
+  </symbol>
+  <symbol id="i-mic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="7.5" y="2.5" width="5" height="9" rx="2.5"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0"/><line x1="10" y1="15" x2="10" y2="18"/><line x1="7" y1="18" x2="13" y2="18"/>
+  </symbol>
+  <symbol id="i-pause" viewBox="0 0 20 20" fill="currentColor">
+    <rect x="6" y="4" width="3" height="12" rx="1"/><rect x="11" y="4" width="3" height="12" rx="1"/>
+  </symbol>
+  <symbol id="i-play" viewBox="0 0 20 20" fill="currentColor"><path d="M6 4l10 6-10 6V4z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 20 20" fill="currentColor"><rect x="5" y="5" width="10" height="10" rx="2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 10a6 6 0 1 1 1.8 4.3"/><path d="M4 14v-4h4"/>
+  </symbol>
+  <symbol id="i-download" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 3v9"/><path d="M6 9l4 4 4-4"/><path d="M4 16h12"/>
+  </symbol>
+</svg>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="brand__mark"></span>
+      <span class="brand__name">قاب‌گیر</span>
+      <span class="brand__tag">REGION · AUDIO · WEBM</span>
+    </div>
+    <ol class="stepper" id="stepper">
+      <li class="stepper__item is-active" data-stage="start"><span class="stepper__num">01</span><span>منبع</span></li>
+      <li class="stepper__item" data-stage="select"><span class="stepper__num">02</span><span>قاب</span></li>
+      <li class="stepper__item" data-stage="recording"><span class="stepper__num">03</span><span>ضبط</span></li>
+      <li class="stepper__item" data-stage="result"><span class="stepper__num">04</span><span>خروجی</span></li>
+    </ol>
+  </div>
+
+  <p class="sub">ناحیه‌ای از یک تب یا کل صفحه را قاب می‌گیری، صدا را هم همراهش ضبط می‌کنی، و فقط فایل خروجی روی سیستم خودت می‌ماند.</p>
+
+  <div class="panel">
+
+    <!-- STAGE 1: START -->
+    <div class="stage active" id="stage-start">
+      <p class="field-label">صدا از کجا گرفته شود؟</p>
+      <div class="source-toggle">
+        <input type="radio" name="audioMode" id="modeTab" value="tab" checked>
+        <label for="modeTab"><svg class="icon"><use href="#i-tab"></use></svg>صدای یک تب مشخص</label>
+        <input type="radio" name="audioMode" id="modeSystem" value="system">
+        <label for="modeSystem"><svg class="icon"><use href="#i-screen"></use></svg>صدای کل سیستم</label>
+      </div>
+
+      <label class="option-row" for="micCheckbox">
+        <input type="checkbox" id="micCheckbox">
+        <svg class="icon"><use href="#i-mic"></use></svg>
+        صدای میکروفون هم اضافه شود
+      </label>
+
+      <div class="hint-box" id="modeHint"></div>
+
+      <div class="row">
+        <button class="btn btn--primary" id="btnStart"><svg><use href="#i-screen"></use></svg>شروع و انتخاب منبع</button>
+      </div>
+    </div>
+
+    <!-- STAGE 2: SELECT REGION -->
+    <div class="stage" id="stage-select">
+      <p class="hint">روی پیش‌نمایش کادر بکش تا ناحیه‌ی ضبط مشخص شود — از گوشه‌ها بزرگ یا کوچک می‌شود، از وسط جابه‌جا.</p>
+      <div class="stage-frame">
+        <div class="viewfinder-shell">
+          <div class="preview-wrap" id="previewWrap">
+            <video id="previewVideo" autoplay muted playsinline></video>
+            <div id="selectionBox">
+              <div class="handle tl"></div><div class="handle tr"></div>
+              <div class="handle bl"></div><div class="handle br"></div>
+            </div>
+          </div>
+          <span class="corner tl"></span><span class="corner tr"></span>
+          <span class="corner bl"></span><span class="corner br"></span>
+        </div>
+        <div class="meter-shell">
+          <span class="meter-label">SIGNAL</span>
+          <div class="meter" id="meterSelect"></div>
+          <span class="meter-db" id="meterDbSelect">—</span>
+        </div>
+      </div>
+      <div class="banner hidden" id="audioWarning">
+        ⚠ هیچ صدایی به اشتراک گذاشته نشد. اگر صدا لازم داری، لغو کن و دوباره تلاش کن — حتماً تیک «Share audio» یا «Share system audio» را در پنجره‌ی انتخاب فعال کن.
+      </div>
+      <div class="row" style="margin-top:16px;">
+        <button class="btn btn--ghost" id="btnCancelSelect">لغو</button>
+        <button class="btn btn--primary" id="btnConfirmSelect" disabled>تأیید ناحیه و شروع ضبط</button>
+      </div>
+    </div>
+
+    <!-- STAGE 3: RECORDING -->
+    <div class="stage" id="stage-recording">
+      <div class="tally-row">
+        <span class="tally" id="tally"><span class="tally__dot"></span><span id="tallyLabel">در حال ضبط</span></span>
+      </div>
+      <span id="timer">00:00</span>
+      <div class="meter-shell" style="width:100%;flex-direction:row;margin-bottom:22px;">
+        <span class="meter-label">SIGNAL</span>
+        <div class="meter" id="meterRec" style="flex-direction:row;height:28px;min-height:unset;"></div>
+        <span class="meter-db" id="meterDbRec">—</span>
+      </div>
+      <div class="row">
+        <button class="btn btn--ghost" id="btnPauseResume"><svg><use href="#i-pause"></use></svg>مکث</button>
+        <button class="btn btn--danger" id="btnDiscard"><svg><use href="#i-refresh"></use></svg>لغو و از نو</button>
+        <button class="btn btn--ok" id="btnStopSave"><svg><use href="#i-stop"></use></svg>پایان و ذخیره</button>
+      </div>
+    </div>
+
+    <!-- STAGE 4: RESULT -->
+    <div class="stage result-box" id="stage-result">
+      <video id="resultVideo" controls></video>
+      <div class="data-row">
+        <div class="data-item">مدت<b id="dataDuration">—</b></div>
+        <div class="data-item">ابعاد<b id="dataRes">—</b></div>
+        <div class="data-item">حجم<b id="dataSize">—</b></div>
+      </div>
+      <div class="row">
+        <button class="btn btn--ok" id="btnDownload"><svg><use href="#i-download"></use></svg>دانلود ویدیو</button>
+        <button class="btn btn--ghost" id="btnNewRecording"><svg><use href="#i-refresh"></use></svg>ضبط جدید</button>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="footnote">
+    همه‌چیز فقط داخل مرورگر خودت اجرا می‌شود؛ هیچ فایلی به سروری فرستاده نمی‌شود. خروجی <b>webm</b> است؛
+    برای mp4 از <code>ffmpeg -i in.webm out.mp4</code> استفاده کن. روی <b>macOS</b> مرورگرها اجازه‌ی ضبط صدای کل سیستم را نمی‌دهند — فقط صدای تب یا میکروفون در دسترس است.
+  </p>
+</div>
+
+<canvas id="hiddenCanvas"></canvas>
+
+<script>
+/* ---------- state ---------- */
+let displayStream = null;
+let micStream = null;
+let audioCtx = null, analyser = null, mixedDest = null, meterDataArray = null;
+let finalStream = null;
+let mediaRecorder = null;
+let chunks = [];
+let recordedBlobUrl = null;
+let drawRafId = null;
+let timerInterval = null;
+let elapsedMs = 0;
+let lastTick = 0;
+
+const stages = {
+  start: document.getElementById('stage-start'),
+  select: document.getElementById('stage-select'),
+  recording: document.getElementById('stage-recording'),
+  result: document.getElementById('stage-result'),
+};
+const stageOrder = ['start','select','recording','result'];
+const stepperItems = document.querySelectorAll('#stepper .stepper__item');
+
+function showStage(name){
+  Object.values(stages).forEach(s => s.classList.remove('active'));
+  stages[name].classList.add('active');
+  stepperItems.forEach(li => {
+    const st = li.dataset.stage;
+    li.classList.toggle('is-active', st === name);
+    li.classList.toggle('is-done', stageOrder.indexOf(st) < stageOrder.indexOf(name));
+  });
+}
+
+const previewVideo = document.getElementById('previewVideo');
+const previewWrap = document.getElementById('previewWrap');
+const selectionBox = document.getElementById('selectionBox');
+const hiddenCanvas = document.getElementById('hiddenCanvas');
+const ctx = hiddenCanvas.getContext('2d');
+
+/* ---------- source-mode hint text ---------- */
+const modeHint = document.getElementById('modeHint');
+function renderModeHint(){
+  const mode = document.querySelector('input[name="audioMode"]:checked').value;
+  if(mode === 'tab'){
+    modeHint.innerHTML = 'در پنجره‌ای که باز می‌شود، گزینه‌ی <b>Chrome Tab</b> را انتخاب کن، تب موردنظر را بزن، و حتماً تیک <b>«Share tab audio»</b> را فعال کن — وگرنه صدا ضبط نمی‌شود.';
+  }else{
+    modeHint.innerHTML = 'در پنجره‌ای که باز می‌شود، گزینه‌ی <b>Entire Screen</b> را انتخاب کن و تیک <b>«Share system audio»</b> را فعال کن تا صدای همه‌ی برنامه‌ها (پلیر موزیک، فیلم، فایل صوتی و…) ضبط شود.<span class="mac-note">روی macOS مرورگرها اجازه‌ی ضبط صدای کل سیستم را نمی‌دهند؛ در آن صورت فقط میکروفون (اگر تیکش را زده باشی) ضبط خواهد شد.</span>';
+  }
+}
+document.querySelectorAll('input[name="audioMode"]').forEach(r => r.addEventListener('change', renderModeHint));
+renderModeHint();
+
+/* ---------- signal meter ---------- */
+const METER_SEGMENTS = 14;
+function buildMeter(container){
+  container.innerHTML = '';
+  for(let i=0;i<METER_SEGMENTS;i++){
+    const seg = document.createElement('div');
+    seg.className = 'meter-seg';
+    container.appendChild(seg);
+  }
+}
+const meterSelect = document.getElementById('meterSelect');
+const meterRec = document.getElementById('meterRec');
+buildMeter(meterSelect);
+buildMeter(meterRec);
+
+function updateMeterDom(level){
+  const lit = Math.round(level * METER_SEGMENTS);
+  [meterSelect, meterRec].forEach(container => {
+    const segs = container.children;
+    for(let i=0;i<segs.length;i++){
+      const seg = segs[i];
+      seg.classList.remove('lit-good','lit-amber','lit-red');
+      if(i < lit){
+        if(i >= METER_SEGMENTS - 2) seg.classList.add('lit-red');
+        else if(i >= METER_SEGMENTS - 5) seg.classList.add('lit-amber');
+        else seg.classList.add('lit-good');
+      }
+    }
+  });
+}
+
+function meterLoop(){
+  if(analyser && meterDataArray){
+    analyser.getByteTimeDomainData(meterDataArray);
+    let sumSquares = 0;
+    for(let i=0;i<meterDataArray.length;i++){
+      const v = (meterDataArray[i]-128)/128;
+      sumSquares += v*v;
+    }
+    const rms = Math.sqrt(sumSquares/meterDataArray.length);
+    const level = Math.min(1, rms*3.2);
+    updateMeterDom(level);
+    const dbText = rms > 0.0008 ? Math.round(20*Math.log10(rms)) + 'dB' : '—';
+    document.getElementById('meterDbSelect').textContent = dbText;
+    document.getElementById('meterDbRec').textContent = dbText;
+  }else{
+    updateMeterDom(0);
+    document.getElementById('meterDbSelect').textContent = '—';
+    document.getElementById('meterDbRec').textContent = '—';
+  }
+  requestAnimationFrame(meterLoop);
+}
+requestAnimationFrame(meterLoop);
+
+/* ---------- audio pipeline (built once per capture session) ---------- */
+function setupAudioPipeline(){
+  const dTracks = displayStream ? displayStream.getAudioTracks() : [];
+  const mTracks = micStream ? micStream.getAudioTracks() : [];
+  if(dTracks.length === 0 && mTracks.length === 0){
+    return false;
+  }
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  mixedDest = audioCtx.createMediaStreamDestination();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 512;
+  meterDataArray = new Uint8Array(analyser.fftSize);
+
+  const merge = audioCtx.createGain();
+  merge.gain.value = 1;
+  if(dTracks.length){
+    audioCtx.createMediaStreamSource(new MediaStream(dTracks)).connect(merge);
+  }
+  if(mTracks.length){
+    audioCtx.createMediaStreamSource(new MediaStream(mTracks)).connect(merge);
+  }
+  merge.connect(mixedDest);
+  merge.connect(analyser);
+  return true;
+}
+
+function teardownAudioPipeline(){
+  if(audioCtx){ audioCtx.close(); audioCtx = null; }
+  analyser = null;
+  mixedDest = null;
+  meterDataArray = null;
+}
+
+/* ---------- STAGE 1: start capture ---------- */
+document.getElementById('btnStart').addEventListener('click', async () => {
+  const mode = document.querySelector('input[name="audioMode"]:checked').value;
+  try{
+    displayStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { displaySurface: mode === 'tab' ? 'browser' : 'monitor' },
+      audio: true
+    });
+  }catch(err){
+    alert('اجازه‌ی ضبط داده نشد یا لغو شد: ' + err.message);
+    return;
+  }
+
+  if(document.getElementById('micCheckbox').checked){
+    try{
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }catch(err){
+      alert('دسترسی به میکروفون ممکن نشد، بدون صدای میکروفون ادامه می‌دهیم.');
+      micStream = null;
+    }
+  }
+
+  // if user stops sharing from the browser's own UI
+  displayStream.getVideoTracks()[0].addEventListener('ended', () => {
+    if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+      finishAndShowResult();
+    }else if(stages.select.classList.contains('active')){
+      cleanupStreams();
+      showStage('start');
+    }
+  });
+
+  const hasAudio = setupAudioPipeline();
+  document.getElementById('audioWarning').classList.toggle('hidden', hasAudio);
+
+  previewVideo.srcObject = displayStream;
+  await previewVideo.play().catch(()=>{});
+  showStage('select');
+  setupSelection();
+});
+
+/* ---------- STAGE 2: region selection ---------- */
+let selecting = false, dragging = false, resizingHandle = null;
+let startX, startY;
+let box = {left:0, top:0, width:0, height:0};
+let dragOrigin = {left:0, top:0, width:0, height:0};
+
+function setupSelection(){
+  selectionBox.style.display = 'none';
+  box = {left:0, top:0, width:0, height:0};
+  document.getElementById('btnConfirmSelect').disabled = true;
+}
+
+function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+previewWrap.addEventListener('mousedown', (e) => {
+  if(e.target.classList.contains('handle')) return;
+  if(e.target === selectionBox){
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    dragOrigin = {left: box.left, top: box.top};
+    return;
+  }
+  const rect = previewWrap.getBoundingClientRect();
+  selecting = true;
+  startX = e.clientX - rect.left;
+  startY = e.clientY - rect.top;
+  box = {left:startX, top:startY, width:0, height:0};
+  selectionBox.style.display = 'block';
+  applyBoxStyle();
+});
+
+document.querySelectorAll('.handle').forEach(h => {
+  h.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+    resizingHandle = h.className.split(' ')[1];
+    startX = e.clientX; startY = e.clientY;
+    dragOrigin = {left: box.left, top: box.top, width: box.width, height: box.height};
+  });
+});
+
+window.addEventListener('mousemove', (e) => {
+  const rect = previewWrap.getBoundingClientRect();
+  if(selecting){
+    const curX = clamp(e.clientX - rect.left, 0, rect.width);
+    const curY = clamp(e.clientY - rect.top, 0, rect.height);
+    box.left = Math.min(startX, curX);
+    box.top = Math.min(startY, curY);
+    box.width = Math.abs(curX - startX);
+    box.height = Math.abs(curY - startY);
+    applyBoxStyle();
+  }else if(dragging){
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    box.left = clamp(dragOrigin.left + dx, 0, rect.width - box.width);
+    box.top = clamp(dragOrigin.top + dy, 0, rect.height - box.height);
+    applyBoxStyle();
+  }else if(resizingHandle){
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    let {left, top, width, height} = dragOrigin;
+    if(resizingHandle.includes('l')){ left = dragOrigin.left + dx; width = dragOrigin.width - dx; }
+    if(resizingHandle.includes('r')){ width = dragOrigin.width + dx; }
+    if(resizingHandle.includes('t')){ top = dragOrigin.top + dy; height = dragOrigin.height - dy; }
+    if(resizingHandle.includes('b')){ height = dragOrigin.height + dy; }
+    left = clamp(left, 0, rect.width);
+    top = clamp(top, 0, rect.height);
+    width = Math.max(20, Math.min(width, rect.width - left));
+    height = Math.max(20, Math.min(height, rect.height - top));
+    box.left = left; box.top = top; box.width = width; box.height = height;
+    applyBoxStyle();
+  }
+});
+
+window.addEventListener('mouseup', () => {
+  selecting = false;
+  dragging = false;
+  resizingHandle = null;
+  document.getElementById('btnConfirmSelect').disabled = !(box.width > 10 && box.height > 10);
+});
+
+function applyBoxStyle(){
+  selectionBox.style.left = box.left + 'px';
+  selectionBox.style.top = box.top + 'px';
+  selectionBox.style.width = box.width + 'px';
+  selectionBox.style.height = box.height + 'px';
+}
+
+document.getElementById('btnCancelSelect').addEventListener('click', () => {
+  cleanupStreams();
+  showStage('start');
+});
+
+document.getElementById('btnConfirmSelect').addEventListener('click', startRecording);
+
+/* ---------- STAGE 3: recording ---------- */
+async function startRecording(){
+  const rect = previewWrap.getBoundingClientRect();
+  const scale = previewVideo.videoWidth / rect.width;
+
+  const selX = Math.round(box.left * scale);
+  const selY = Math.round(box.top * scale);
+  const selW = Math.round(box.width * scale);
+  const selH = Math.round(box.height * scale);
+
+  hiddenCanvas.width = selW;
+  hiddenCanvas.height = selH;
+
+  function drawFrame(){
+    try{
+      ctx.drawImage(previewVideo, selX, selY, selW, selH, 0, 0, selW, selH);
+    }catch(e){}
+    drawRafId = requestAnimationFrame(drawFrame);
+  }
+  drawFrame();
+
+  const canvasStream = hiddenCanvas.captureStream(30);
+  const videoTrack = canvasStream.getVideoTracks()[0];
+  const audioTracks = mixedDest ? mixedDest.stream.getAudioTracks() : [];
+  finalStream = new MediaStream([videoTrack, ...audioTracks]);
+
+  const mimeCandidates = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm'
+  ];
+  const mimeType = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m)) || '';
+
+  chunks = [];
+  mediaRecorder = new MediaRecorder(finalStream, mimeType ? {mimeType} : undefined);
+  mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) chunks.push(e.data); };
+  mediaRecorder.onerror = (e) => { alert('خطا در ضبط: ' + (e.error ? e.error.message : 'نامشخص')); };
+  mediaRecorder.start();
+
+  elapsedMs = 0;
+  lastTick = Date.now();
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    if(mediaRecorder.state === 'recording'){
+      const now = Date.now();
+      elapsedMs += now - lastTick;
+      lastTick = now;
+      updateTimerDisplay();
+    }
+  }, 250);
+
+  setRecUI('recording');
+  showStage('recording');
+}
+
+function updateTimerDisplay(){
+  document.getElementById('timer').textContent = formatDuration(elapsedMs);
+}
+
+function formatDuration(ms){
+  const totalSec = Math.floor(ms / 1000);
+  const mm = String(Math.floor(totalSec / 60)).padStart(2,'0');
+  const ss = String(totalSec % 60).padStart(2,'0');
+  return `${mm}:${ss}`;
+}
+
+function formatBytes(bytes){
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function setRecUI(state){
+  const tally = document.getElementById('tally');
+  const label = document.getElementById('tallyLabel');
+  const pauseBtn = document.getElementById('btnPauseResume');
+  if(state === 'recording'){
+    tally.classList.remove('is-paused');
+    label.textContent = 'در حال ضبط';
+    pauseBtn.innerHTML = '<svg><use href="#i-pause"></use></svg>مکث';
+  }else if(state === 'paused'){
+    tally.classList.add('is-paused');
+    label.textContent = 'مکث شده';
+    pauseBtn.innerHTML = '<svg><use href="#i-play"></use></svg>ادامه';
+  }
+}
+
+document.getElementById('btnPauseResume').addEventListener('click', () => {
+  if(!mediaRecorder) return;
+  if(mediaRecorder.state === 'recording'){
+    mediaRecorder.pause();
+    lastTick = Date.now();
+    setRecUI('paused');
+  }else if(mediaRecorder.state === 'paused'){
+    mediaRecorder.resume();
+    lastTick = Date.now();
+    setRecUI('recording');
+  }
+});
+
+document.getElementById('btnDiscard').addEventListener('click', () => {
+  if(!confirm('کل ضبط فعلی پاک شود و دوباره از اول شروع کنیم؟')) return;
+  if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+    mediaRecorder.ondataavailable = null;
+    mediaRecorder.stop();
+  }
+  chunks = [];
+  clearInterval(timerInterval);
+  cancelAnimationFrame(drawRafId);
+  // displayStream / micStream / audioCtx stay alive — same source, pick a new region
+  showStage('select');
+  setupSelection();
+});
+
+document.getElementById('btnStopSave').addEventListener('click', finishAndShowResult);
+
+function finishAndShowResult(){
+  clearInterval(timerInterval);
+  cancelAnimationFrame(drawRafId);
+  if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+    mediaRecorder.onstop = buildResultVideo;
+    mediaRecorder.stop();
+  }else{
+    buildResultVideo();
+  }
+}
+
+function buildResultVideo(){
+  const blob = new Blob(chunks, {type: 'video/webm'});
+  if(recordedBlobUrl) URL.revokeObjectURL(recordedBlobUrl);
+  recordedBlobUrl = URL.createObjectURL(blob);
+  const resultVideo = document.getElementById('resultVideo');
+  resultVideo.src = recordedBlobUrl;
+
+  document.getElementById('dataDuration').textContent = formatDuration(elapsedMs);
+  document.getElementById('dataRes').textContent = `${hiddenCanvas.width}×${hiddenCanvas.height}`;
+  document.getElementById('dataSize').textContent = formatBytes(blob.size);
+
+  showStage('result');
+
+  // release the capture so the browser's "you are sharing" indicator turns off
+  teardownAudioPipeline();
+  if(displayStream){ displayStream.getTracks().forEach(t => t.stop()); displayStream = null; }
+  if(micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+}
+
+document.getElementById('btnDownload').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = recordedBlobUrl;
+  const ts = new Date().toISOString().replace(/[:.]/g,'-');
+  a.download = `recording-${ts}.webm`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+document.getElementById('btnNewRecording').addEventListener('click', () => {
+  cleanupStreams();
+  showStage('start');
+});
+
+function cleanupStreams(){
+  if(displayStream){ displayStream.getTracks().forEach(t => t.stop()); displayStream = null; }
+  if(micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  teardownAudioPipeline();
+  chunks = [];
+}
+</script>
+</body>
+</html>
